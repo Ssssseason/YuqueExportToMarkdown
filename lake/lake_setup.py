@@ -24,6 +24,7 @@ file_total = 0
 total = 0
 downloadImage = True
 root_path = ""
+enable_wolai_toc = True
 
 
 # from lxml import etree
@@ -100,6 +101,10 @@ def create_tree_dir(parent_path, book):
         seg = [x for x in parent_path.split("/")]
         seg.append(child['title'])
         create_tree_dir("/".join(seg), child)
+    if enable_wolai_toc:
+        toc_md_path = os.path.join(parent_path, name + ".md")
+        chidren_names = [child['title'] for child in book_children]
+        convert_wolai_toc(toc_md_path, chidren_names)
 
 
 class LakeToMd:
@@ -136,16 +141,36 @@ def convert_to_md(file_path):
     for root_book in root_books:
         title = root_book['title']
         create_tree_dir("/".join([output_path, title]), root_book)
+    if enable_wolai_toc:
+        last_dir_name = os.path.basename(file_path)
+        toc_md_path = os.path.join(file_path, last_dir_name + ".md")
+        children_names = [root_book['title'] for root_book in root_books]
+        convert_wolai_toc(toc_md_path, children_names)
+    
     print("转换完成")
     os.system("explorer " + output_path)
 
+def convert_wolai_toc(toc_md_path, children_names):
+    if not enable_wolai_toc:
+        return
+    with open(toc_md_path, 'a+') as fp:
+        fp.write("\n")
+        for child_name in children_names:
+            fp.write("[{}](<{}/{}.md> \"{}\")\n\n".format(child_name, child_name, child_name, child_name))
+        fp.flush()
 
-def start_convert(meta, output, downloadImageOfIn):
+    # [StopWatch秒表](StopWatch秒表/StopWatch秒表.md "StopWatch秒表")
+
+
+
+def start_convert(meta, output, downloadImageOfIn, enable_wolai_toc_arg):
     global root_path
     root_path = meta
     load_meta_json(meta)
     global downloadImage
     downloadImage = downloadImageOfIn
+    global enable_wolai_toc
+    enable_wolai_toc = enable_wolai_toc_arg
     abspath = os.path.abspath(output)
     convert_to_md(abspath)
     print("共导出%s个文件" % file_count)
